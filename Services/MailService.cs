@@ -38,6 +38,11 @@ public class MailService()
         {
             message.To.Add(to);
         }
+        
+        foreach (var cc in request.MailMessage.CC)
+        {
+            message.CC.Add(cc);
+        }
 
         smtpClient.Send(message);
     }
