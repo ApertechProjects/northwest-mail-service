@@ -1,6 +1,7 @@
 ﻿
 using System.Net;
 using System.Net.Mail;
+using System.Net.Mime;
 using HRIntegrationService.Models;
 
 namespace HRIntegrationService.Services;
@@ -21,11 +22,42 @@ public class MailService()
         message.Body = request.MailMessage.Body;
         message.IsBodyHtml = request.MailMessage.IsBodyHtml;
 
+        for (int i = 0; i < request.MailMessage.Attachment.Count; i++)
+        {
+            string base64String = request.MailMessage.Attachment[i];
+            string fileName = request.MailMessage.AttachmentName[i];
+            byte[] fileBytes = Convert.FromBase64String(base64String);
+            MemoryStream stream = new MemoryStream(fileBytes);
+            string mimeType = GetMimeType(fileName);
+
+            Attachment attachment = new Attachment(stream, fileName, mimeType);
+            message.Attachments.Add(attachment);
+        }
+
         foreach (var to in request.MailMessage.To)
         {
             message.To.Add(to);
         }
 
         smtpClient.Send(message);
+    }
+    
+    private string GetMimeType(string fileName)
+    {
+        string extension = Path.GetExtension(fileName).ToLower();
+
+        return extension switch
+        {
+            ".pdf" => MediaTypeNames.Application.Pdf,
+            ".txt" => MediaTypeNames.Text.Plain,
+            ".html" => MediaTypeNames.Text.Html,
+            ".jpg" or ".jpeg" => MediaTypeNames.Image.Jpeg,
+            ".png" => "image/png",
+            ".gif" => MediaTypeNames.Image.Gif,
+            ".docx" => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            ".xlsx" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            ".csv" => "text/csv",
+            _ => "application/octet-stream", // bilinmeyen tip
+        };
     }
 }
